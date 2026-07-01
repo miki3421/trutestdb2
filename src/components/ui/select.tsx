@@ -1,0 +1,14 @@
+import * as React from "react"
+import { cn } from "@/lib/utils"
+
+const Select = ({ children, value, onChange }: any) => (
+  <select value={value} onChange={onChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+    {children}
+  </select>
+)
+
+const SelectValue = ({ children, ...props }: any) => (
+  <span {...props}>{children}</span>
+)
+
+export { Select, SelectValue }
