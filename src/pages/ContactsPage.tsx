@@ -143,17 +143,10 @@ export default function ContactsPage() {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const user = localStorage.getItem("user");
   const token = localStorage.getItem("token");
   
-  if (user) {
-    const userData = JSON.parse(user);
-    return {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token || ""}`,
-      "user_id": String(userData?.id || ""),
-    };
-  }
-  
-  return { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token || ""}`,
+  };
 }

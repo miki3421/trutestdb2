@@ -42,9 +42,6 @@ export default function ContactForm({ contact, onClose }: ContactFormProps) {
     }
   }, [contact]);
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = user?.id;
-
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       const url = contact
@@ -81,7 +78,6 @@ export default function ContactForm({ contact, onClose }: ContactFormProps) {
     }
 
     mutation.mutate({
-      user_id: userId,
       nome: nome.trim(),
       email: email.trim() || null,
       telefono: telefono.trim() || null,
@@ -157,17 +153,10 @@ export default function ContactForm({ contact, onClose }: ContactFormProps) {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const user = localStorage.getItem("user");
   const token = localStorage.getItem("token");
   
-  if (user) {
-    const userData = JSON.parse(user);
-    return {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token || ""}`,
-      "user_id": String(userData?.id || ""),
-    };
-  }
-  
-  return { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token || ""}`,
+  };
 }
