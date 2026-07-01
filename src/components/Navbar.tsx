@@ -20,6 +20,9 @@ export default function Navbar() {
           </Link>
           {user?.id && (
             <>
+              <Link to="/dashboard" className="text-sm hover:text-primary transition-colors">
+                Dashboard
+              </Link>
               <Link to="/contacts" className="text-sm hover:text-primary transition-colors">
                 Contatti
               </Link>

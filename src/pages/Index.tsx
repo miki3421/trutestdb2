@@ -7,7 +7,7 @@ const Index = () => {
 
   useEffect(() => {
     if (token) {
-      navigate("/contacts");
+      navigate("/dashboard");
     } else {
       navigate("/login");
     }
