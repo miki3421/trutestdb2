@@ -31,6 +31,11 @@ def get_user_id_from_token(args, conn):
         token = auth_header[7:]
     
     if not token:
+        query_params = args.get("__ow_query") or {}
+        if isinstance(query_params, dict):
+            token = query_params.get("token")
+    
+    if not token:
         return None
     
     try:
