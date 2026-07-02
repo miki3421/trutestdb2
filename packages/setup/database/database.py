@@ -117,6 +117,28 @@ def main(args, ctx=None):
                          c.nome, o.data_ordine, o.stato, o.totale
             """)
             
+            # Create documenti table for client documents
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS documenti (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    cliente_id INTEGER REFERENCES clienti(id) ON DELETE CASCADE,
+                    nome_file VARCHAR(255) NOT NULL,
+                    categoria VARCHAR(100) NOT NULL,
+                    descrizione TEXT,
+                    s3_key VARCHAR(500) NOT NULL,
+                    content_type VARCHAR(100),
+                    size_bytes INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create index for faster document lookups by client
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_documenti_cliente_id 
+                ON documenti(cliente_id)
+            """)
+            
             # Add missing columns to users table if they don't exist
             cur.execute("""
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS cognome VARCHAR(100)
