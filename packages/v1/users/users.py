@@ -24,7 +24,10 @@ def get_request_route_id(args, data, resource_name):
 
 def get_user_id_from_token(args, conn):
     headers = args.get("__ow_headers") or {}
+    
     auth_header = headers.get("authorization", "")
+    if not auth_header:
+        auth_header = headers.get("Authorization", "")
     
     token = None
     if auth_header.startswith("Bearer "):
@@ -39,6 +42,7 @@ def get_user_id_from_token(args, conn):
         elif isinstance(query_params, dict):
             token = query_params.get("token")
     
+    # Fallback: cerca 'token' direttamente in args (OpenWhisk può passare i parametri come top-level)
     if not token and "token" in args:
         token = args["token"]
     
@@ -107,13 +111,34 @@ def main(args, ctx=None):
                 }
         
         elif method == "PUT":
-            nome = merged.get("nome", "").strip() or ""
-            cognome = merged.get("cognome", "").strip() or None
-            email = merged.get("email", "").strip() or None
-            telefono = merged.get("telefono", "").strip() or None
-            indirizzo = merged.get("indirizzo", "").strip() or None
-            piva = merged.get("piva", "").strip() or None
-            iva_esente = merged.get("iva_esente", False)
+            # Get current user data first
+            with conn.cursor() as cur:
+                cur.execute("SELECT nome, cognome, email, telefono, indirizzo, piva, iva_esente FROM users WHERE id = %s", (user_id,))
+                row = cur.fetchone()
+            
+            if not row:
+                return {"ok": False, "error": "Utente non trovato"}
+            
+            # Use provided values or keep existing ones
+            nome_input = merged.get("nome")
+            nome = nome_input.strip() if isinstance(nome_input, str) else row[0]
+            
+            cognome_input = merged.get("cognome")
+            cognome = cognome_input.strip() if isinstance(cognome_input, str) else row[1]
+            
+            email_input = merged.get("email")
+            email = email_input.strip() if isinstance(email_input, str) else row[2]
+            
+            telefono_input = merged.get("telefono")
+            telefono = telefono_input.strip() if isinstance(telefono_input, str) else row[3]
+            
+            indirizzo_input = merged.get("indirizzo")
+            indirizzo = indirizzo_input.strip() if isinstance(indirizzo_input, str) else row[4]
+            
+            piva_input = merged.get("piva")
+            piva = piva_input.strip() if isinstance(piva_input, str) else row[5]
+            
+            iva_esente = merged.get("iva_esente", row[6])
             
             with conn.cursor() as cur:
                 cur.execute(

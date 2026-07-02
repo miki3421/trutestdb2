@@ -14,6 +14,7 @@ def main(args, ctx=None):
                     password VARCHAR(255) NOT NULL,
                     nome VARCHAR(100) NOT NULL,
                     cognome VARCHAR(100),
+                    telefono VARCHAR(20),
                     indirizzo TEXT,
                     piva VARCHAR(50),
                     iva_esente BOOLEAN DEFAULT FALSE,
@@ -63,6 +64,9 @@ def main(args, ctx=None):
             # Add missing columns to users table if they don't exist
             cur.execute("""
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS cognome VARCHAR(100)
+            """)
+            cur.execute("""
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS telefono VARCHAR(20)
             """)
             cur.execute("""
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS indirizzo TEXT
