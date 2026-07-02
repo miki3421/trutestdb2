@@ -14,10 +14,12 @@ interface Order {
   id: number;
   user_id: number;
   contatto_id: number | null;
+  cliente_id: number | null;
   data_ordine: string | null;
   stato: string;
   totale: number | null;
   created_at: string | null;
+  cliente_nome?: string;
 }
 
 export default function OrdersPage() {
@@ -132,6 +134,9 @@ export default function OrdersPage() {
                   </div>
                   <CardDescription>
                     {order.data_ordine ? new Date(order.data_ordine).toLocaleDateString("it-IT") : "Data non specificata"}
+                    {order.cliente_nome && (
+                      <div className="mt-1 text-sm font-medium">{order.cliente_nome}</div>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">

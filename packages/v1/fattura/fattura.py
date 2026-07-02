@@ -99,13 +99,34 @@ def get_contact_info(conn, contatto_id):
         pass
     return None
 
+def get_cliente_info(conn, cliente_id):
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT id, nome, email, telefono, citta FROM clienti WHERE id = %s""",
+                (cliente_id,)
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "id": row[0],
+                    "nome": row[1] or "",
+                    "email": row[2],
+                    "telefono": row[3],
+                    "citta": row[4]
+                }
+    except:
+        pass
+    return None
+
 def get_order_details(conn, order_id, user_id):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                """SELECT o.id, o.contatto_id, o.data_ordine, o.stato, o.totale, c.nome as contatto_nome
+                """SELECT o.id, o.contatto_id, o.cliente_id, o.data_ordine, o.stato, o.totale, c.nome as contatto_nome, cl.nome as cliente_nome
                    FROM orders o 
                    LEFT JOIN contacts c ON o.contatto_id = c.id
+                   LEFT JOIN clienti cl ON o.cliente_id = cl.id
                    WHERE o.id = %s AND o.user_id = %s""",
                 (order_id, user_id)
             )
@@ -114,16 +135,18 @@ def get_order_details(conn, order_id, user_id):
                 return {
                     "id": row[0],
                     "contatto_id": row[1],
-                    "data_ordine": str(row[2]) if row[2] else None,
-                    "stato": row[3],
-                    "totale": float(row[4]) if row[4] else 0.0,
-                    "contatto_nome": row[5]
+                    "cliente_id": row[2],
+                    "data_ordine": str(row[3]) if row[3] else None,
+                    "stato": row[4],
+                    "totale": float(row[5]) if row[5] else 0.0,
+                    "contatto_nome": row[6],
+                    "cliente_nome": row[7]
                 }
     except:
         pass
     return None
 
-def generate_invoice_html(order_details, company_info, contact_info):
+def generate_invoice_html(order_details, company_info, cliente_info):
     today = datetime.now().strftime("%d/%m/%Y")
     
     html = f"""<!DOCTYPE html>
@@ -240,15 +263,15 @@ def generate_invoice_html(order_details, company_info, contact_info):
         </div>
         <div class="info-block">
             <div class="section-title">Destinatario</div>
-            <p><strong>{contact_info['nome'] if contact_info else 'N/A'}</strong></p>
-            {contact_info and contact_info.get('indirizzo') and f"<p>{contact_info['indirizzo']}</p>"}
-            {contact_info and contact_info.get('email') and f"<p>{contact_info['email']}</p>"}
-            {contact_info and contact_info.get('telefono') and f"<p>Tel: {contact_info['telefono']}</p>"}
+            <p><strong>{cliente_info['nome'] if cliente_info else 'N/A'}</strong></p>
+            {cliente_info and cliente_info.get('citta') and f"<p>{cliente_info['citta']}</p>"}
+            {cliente_info and cliente_info.get('email') and f"<p>{cliente_info['email']}</p>"}
+            {cliente_info and cliente_info.get('telefono') and f"<p>Tel: {cliente_info['telefono']}</p>"}
         </div>
     </div>
 
     <div class="section">
-        <div class="section-title">Dettagli Ordine</div>
+        <div class="section-title">Dettagli Fattura</div>
         <table>
             <thead>
                 <tr>
@@ -259,7 +282,7 @@ def generate_invoice_html(order_details, company_info, contact_info):
             </thead>
             <tbody>
                 <tr>
-                    <td>{contact_info['nome'] if contact_info else 'Ordine'}</td>
+                    <td>{cliente_info['nome'] if cliente_info else 'Fattura'}</td>
                     <td>{order_details['data_ordine'] or '-'}</td>
                     <td>€ {order_details['totale']:,.2f}</td>
                 </tr>
@@ -317,11 +340,11 @@ def main(args, ctx=None):
                 return {"ok": False, "error": "Fattura non trovata"}
             
             company_info = get_company_info(conn, user_id)
-            contact_info = None
-            if order_details.get('contatto_id'):
-                contact_info = get_contact_info(conn, order_details['contatto_id'])
+            cliente_info = None
+            if order_details.get('cliente_id'):
+                cliente_info = get_cliente_info(conn, order_details['cliente_id'])
             
-            html = generate_invoice_html(order_details, company_info or {}, contact_info or {})
+            html = generate_invoice_html(order_details, company_info or {}, cliente_info or {})
             
             return {
                 "ok": True,

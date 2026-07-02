@@ -71,8 +71,9 @@ def main(args, ctx=None):
         if method == "GET":
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT o.id, o.user_id, o.contatto_id, o.data_ordine, o.stato, o.totale, o.created_at 
+                    """SELECT o.id, o.user_id, o.contatto_id, o.cliente_id, o.data_ordine, o.stato, o.totale, o.created_at, c.nome as cliente_nome
                        FROM orders o 
+                       LEFT JOIN clienti c ON o.cliente_id = c.id
                        WHERE o.user_id = %s 
                        ORDER BY o.created_at DESC""",
                     (user_id,)
@@ -84,10 +85,12 @@ def main(args, ctx=None):
                         "id": row[0],
                         "user_id": row[1],
                         "contatto_id": row[2],
-                        "data_ordine": str(row[3]) if row[3] else None,
-                        "stato": row[4],
-                        "totale": float(row[5]) if row[5] else None,
-                        "created_at": str(row[6]) if row[6] else None
+                        "cliente_id": row[3],
+                        "data_ordine": str(row[4]) if row[4] else None,
+                        "stato": row[5],
+                        "totale": float(row[6]) if row[6] else None,
+                        "created_at": str(row[7]) if row[7] else None,
+                        "cliente_nome": row[8]
                     })
                 return {"ok": True, "orders": orders}
         
@@ -97,15 +100,16 @@ def main(args, ctx=None):
                 return {"ok": False, "error": "Data ordine è richiesta"}
             
             contatto_id = merged.get("contatto_id")
+            cliente_id = merged.get("cliente_id")
             stato = merged.get("stato", "pending")
             totale = merged.get("totale")
             
             with conn.cursor() as cur:
                 cur.execute(
-                    """INSERT INTO orders (user_id, contatto_id, data_ordine, stato, totale) 
-                       VALUES (%s, %s, %s, %s, %s) 
-                       RETURNING id, user_id, contatto_id, data_ordine, stato, totale, created_at""",
-                    (user_id, contatto_id, data_ordine, stato, totale)
+                    """INSERT INTO orders (user_id, contatto_id, cliente_id, data_ordine, stato, totale) 
+                       VALUES (%s, %s, %s, %s, %s, %s) 
+                       RETURNING id, user_id, contatto_id, cliente_id, data_ordine, stato, totale, created_at""",
+                    (user_id, contatto_id, cliente_id, data_ordine, stato, totale)
                 )
                 row = cur.fetchone()
             
@@ -117,10 +121,11 @@ def main(args, ctx=None):
                     "id": row[0],
                     "user_id": row[1],
                     "contatto_id": row[2],
-                    "data_ordine": str(row[3]) if row[3] else None,
-                    "stato": row[4],
-                    "totale": float(row[5]) if row[5] else None,
-                    "created_at": str(row[6]) if row[6] else None
+                    "cliente_id": row[3],
+                    "data_ordine": str(row[4]) if row[4] else None,
+                    "stato": row[5],
+                    "totale": float(row[6]) if row[6] else None,
+                    "created_at": str(row[7]) if row[7] else None
                 }
             }
         
@@ -135,16 +140,17 @@ def main(args, ctx=None):
                     return {"ok": False, "error": "Ordine non trovato"}
                 
                 contatto_id = merged.get("contatto_id")
+                cliente_id = merged.get("cliente_id")
                 data_ordine = merged.get("data_ordine")
                 stato = merged.get("stato", "pending")
                 totale = merged.get("totale")
                 
                 cur.execute(
                     """UPDATE orders 
-                       SET contatto_id=%s, data_ordine=%s, stato=%s, totale=%s 
+                       SET contatto_id=%s, cliente_id=%s, data_ordine=%s, stato=%s, totale=%s 
                        WHERE id = %s AND user_id = %s 
-                       RETURNING id, user_id, contatto_id, data_ordine, stato, totale, created_at""",
-                    (contatto_id, data_ordine, stato, totale, order_id, user_id)
+                       RETURNING id, user_id, contatto_id, cliente_id, data_ordine, stato, totale, created_at""",
+                    (contatto_id, cliente_id, data_ordine, stato, totale, order_id, user_id)
                 )
                 row = cur.fetchone()
             
@@ -156,10 +162,11 @@ def main(args, ctx=None):
                     "id": row[0],
                     "user_id": row[1],
                     "contatto_id": row[2],
-                    "data_ordine": str(row[3]) if row[3] else None,
-                    "stato": row[4],
-                    "totale": float(row[5]) if row[5] else None,
-                    "created_at": str(row[6]) if row[6] else None
+                    "cliente_id": row[3],
+                    "data_ordine": str(row[4]) if row[4] else None,
+                    "stato": row[5],
+                    "totale": float(row[6]) if row[6] else None,
+                    "created_at": str(row[7]) if row[7] else None
                 }
             }
         

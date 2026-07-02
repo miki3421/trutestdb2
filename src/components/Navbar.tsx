@@ -26,6 +26,9 @@ export default function Navbar() {
               <Link to="/contacts" className="text-sm hover:text-primary transition-colors">
                 Contatti
               </Link>
+              <Link to="/clienti" className="text-sm hover:text-primary transition-colors">
+                Clienti
+              </Link>
               <Link to="/orders" className="text-sm hover:text-primary transition-colors">
                 Ordini
               </Link>

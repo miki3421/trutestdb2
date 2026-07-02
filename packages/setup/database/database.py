@@ -22,7 +22,21 @@ def main(args, ctx=None):
                 )
             """)
             
-            # Create contacts table
+            # Create clienti table (for invoices/customers)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS clienti (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    nome VARCHAR(100) NOT NULL,
+                    email VARCHAR(255),
+                    telefono VARCHAR(20),
+                    citta VARCHAR(100),
+                    nota TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create contacts table (kept for backward compatibility)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS contacts (
                     id SERIAL PRIMARY KEY,
@@ -37,12 +51,13 @@ def main(args, ctx=None):
                 )
             """)
             
-            # Create orders table
+            # Create orders table with cliente_id reference
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS orders (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                     contatto_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+                    cliente_id INTEGER REFERENCES clienti(id) ON DELETE SET NULL,
                     data_ordine DATE NOT NULL,
                     stato VARCHAR(20) DEFAULT 'pending',
                     totale DECIMAL(10,2),
@@ -84,6 +99,11 @@ def main(args, ctx=None):
             """)
             cur.execute("""
                 ALTER TABLE contacts ADD COLUMN IF NOT EXISTS indirizzo TEXT
+            """)
+            
+            # Add cliente_id column to orders table if it doesn't exist
+            cur.execute("""
+                ALTER TABLE orders ADD COLUMN IF NOT EXISTS cliente_id INTEGER REFERENCES clienti(id) ON DELETE SET NULL
             """)
         
         conn.commit()

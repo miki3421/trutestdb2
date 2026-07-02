@@ -3,9 +3,8 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-interface Contact {
+interface Cliente {
   id: number;
   nome: string;
 }
@@ -14,6 +13,7 @@ interface Order {
   id: number;
   user_id: number;
   contatto_id: number | null;
+  cliente_id: number | null;
   data_ordine: string | null;
   stato: string;
   totale: number | null;
@@ -31,19 +31,20 @@ export default function OrderForm({ order, onClose }: OrderFormProps) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const userId = user?.id;
 
-  const { data: contacts } = useQuery({
-    queryKey: ["contacts", userId],
+  const { data: clienti } = useQuery({
+    queryKey: ["clienti", userId],
     queryFn: async () => {
-      const response = await fetch(`/api/my/v1/contacts?user_id=${userId}`, {
+      const response = await fetch(`/api/my/v1/clienti`, {
         headers: getAuthHeaders(),
       });
       const data = await response.json();
       if (!data.ok) throw new Error(data.error);
-      return data.contacts;
+      return data.clienti;
     },
     enabled: !!userId,
   });
 
+  const [cliente_id, setClienteId] = useState<string>("");
   const [contatto_id, setContattoId] = useState<string>("");
   const [data_ordine, setDataOrdine] = useState("");
   const [stato, setStato] = useState("pending");
@@ -52,6 +53,7 @@ export default function OrderForm({ order, onClose }: OrderFormProps) {
 
   useEffect(() => {
     if (order) {
+      setClienteId(order.cliente_id ? String(order.cliente_id) : "");
       setContattoId(order.contatto_id ? String(order.contatto_id) : "");
       setDataOrdine(order.data_ordine || new Date().toISOString().split("T")[0]);
       setStato(order.stato);
@@ -99,6 +101,7 @@ export default function OrderForm({ order, onClose }: OrderFormProps) {
 
     mutation.mutate({
       user_id: userId,
+      cliente_id: cliente_id ? parseInt(cliente_id) : null,
       contatto_id: contatto_id ? parseInt(contatto_id) : null,
       data_ordine,
       stato,
@@ -123,17 +126,17 @@ export default function OrderForm({ order, onClose }: OrderFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="contatto">Contatto</Label>
+            <Label htmlFor="cliente">Cliente</Label>
             <select
-              id="contatto"
-              value={contatto_id}
-              onChange={(e) => setContattoId(e.target.value)}
+              id="cliente"
+              value={cliente_id}
+              onChange={(e) => setClienteId(e.target.value)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <option value="">Nessun contatto</option>
-              {contacts?.map((contact) => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.nome}
+              <option value="">Nessun cliente</option>
+              {clienti?.map((cliente) => (
+                <option key={cliente.id} value={cliente.id}>
+                  {cliente.nome}
                 </option>
               ))}
             </select>
