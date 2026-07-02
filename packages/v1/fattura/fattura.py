@@ -31,9 +31,20 @@ def get_user_id_from_token(args, conn):
         token = auth_header[7:]
     
     if not token:
-        query_params = args.get("__ow_query") or {}
-        if isinstance(query_params, dict):
+        query_params = args.get("__ow_query_raw") or {}
+        print(f"DEBUG __ow_query_raw: {query_params}")
+        if isinstance(query_params, str):
+            from urllib.parse import parse_qs
+            parsed = parse_qs(query_params)
+            token = parsed.get("token", [None])[0]
+        elif isinstance(query_params, dict):
             token = query_params.get("token")
+    
+    # Fallback: cerca 'token' direttamente in args (OpenWhisk può passare i parametri come top-level)
+    if not token and "token" in args:
+        token = args["token"]
+    
+    print(f"DEBUG token found: {token}")
     
     if not token:
         return None
