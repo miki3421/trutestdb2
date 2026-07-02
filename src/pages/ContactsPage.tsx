@@ -9,8 +9,10 @@ interface Contact {
   id: number;
   user_id: number;
   nome: string;
+  cognome: string | null;
   email: string | null;
   telefono: string | null;
+  indirizzo: string | null;
   nota: string | null;
   created_at: string | null;
 }
@@ -112,12 +114,15 @@ export default function ContactsPage() {
             {contacts?.map((contact) => (
               <Card key={contact.id}>
                 <CardHeader>
-                  <CardTitle>{contact.nome}</CardTitle>
+                  <CardTitle>{contact.nome} {contact.cognome}</CardTitle>
                   <CardDescription>
                     {contact.email || "Nessuna email"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
+                  {contact.indirizzo && (
+                    <p className="text-sm text-gray-600">{contact.indirizzo}</p>
+                  )}
                   {contact.telefono && (
                     <p className="text-sm text-gray-600">Telefono: {contact.telefono}</p>
                   )}

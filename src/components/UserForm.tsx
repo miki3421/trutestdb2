@@ -1,64 +1,62 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
-interface Contact {
+interface User {
   id: number;
-  user_id: number;
   nome: string;
   cognome: string | null;
   email: string | null;
   telefono: string | null;
   indirizzo: string | null;
-  nota: string | null;
-  created_at: string | null;
+  piva: string | null;
+  iva_esente: boolean;
 }
 
-interface ContactFormProps {
-  contact: Contact | null;
+interface UserFormProps {
+  user: User | null;
   onClose: () => void;
 }
 
-export default function ContactForm({ contact, onClose }: ContactFormProps) {
+export default function UserForm({ user, onClose }: UserFormProps) {
   const queryClient = useQueryClient();
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [indirizzo, setIndirizzo] = useState("");
-  const [nota, setNota] = useState("");
+  const [piva, setPiva] = useState("");
+  const [iva_esente, setIvaEsente] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (contact) {
-      setNome(contact.nome);
-      setCognome(contact.cognome || "");
-      setEmail(contact.email || "");
-      setTelefono(contact.telefono || "");
-      setIndirizzo(contact.indirizzo || "");
-      setNota(contact.nota || "");
+    if (user) {
+      setNome(user.nome || "");
+      setCognome(user.cognome || "");
+      setEmail(user.email || "");
+      setTelefono(user.telefono || "");
+      setIndirizzo(user.indirizzo || "");
+      setPiva(user.piva || "");
+      setIvaEsente(user.iva_esente || false);
     } else {
       setNome("");
       setCognome("");
       setEmail("");
       setTelefono("");
       setIndirizzo("");
-      setNota("");
+      setPiva("");
+      setIvaEsente(false);
     }
-  }, [contact]);
+  }, [user]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      const url = contact
-        ? `/api/my/v1/contacts/${contact.id}`
-        : "/api/my/v1/contacts";
-      const method = contact ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch("/api/my/v1/users", {
+        method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
@@ -68,7 +66,12 @@ export default function ContactForm({ contact, onClose }: ContactFormProps) {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      localStorage.removeItem("user");
+      const updatedUser = mutation.data?.user;
+      if (updatedUser) {
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
       onClose();
     },
     onError: (err: any) => {
@@ -91,16 +94,15 @@ export default function ContactForm({ contact, onClose }: ContactFormProps) {
       email: email.trim() || null,
       telefono: telefono.trim() || null,
       indirizzo: indirizzo.trim() || null,
-      nota: nota.trim() || null,
+      piva: piva.trim() || null,
+      iva_esente,
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold mb-4">
-          {contact ? "Modifica Contatto" : "Nuovo Contatto"}
-        </h2>
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-4">Il mio profilo</h2>
 
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4">
@@ -160,18 +162,27 @@ export default function ContactForm({ contact, onClose }: ContactFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="nota">Nota</Label>
-            <Textarea
-              id="nota"
-              value={nota}
-              onChange={(e) => setNota(e.target.value)}
-              rows={3}
+            <Label htmlFor="piva">Partita IVA</Label>
+            <Input
+              id="piva"
+              value={piva}
+              onChange={(e) => setPiva(e.target.value)}
+              placeholder="Inserisci la tua P.IVA"
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="iva_esente"
+              checked={iva_esente}
+              onCheckedChange={setIvaEsente}
+            />
+            <Label htmlFor="iva_esente">IVA Esente</Label>
           </div>
 
           <div className="flex gap-2 pt-4">
             <Button type="submit" className="flex-1">
-              {contact ? "Aggiorna" : "Crea"}
+              Salva
             </Button>
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Annulla

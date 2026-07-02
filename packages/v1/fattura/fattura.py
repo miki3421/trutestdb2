@@ -32,7 +32,6 @@ def get_user_id_from_token(args, conn):
     
     if not token:
         query_params = args.get("__ow_query_raw") or {}
-        print(f"DEBUG __ow_query_raw: {query_params}")
         if isinstance(query_params, str):
             from urllib.parse import parse_qs
             parsed = parse_qs(query_params)
@@ -43,8 +42,6 @@ def get_user_id_from_token(args, conn):
     # Fallback: cerca 'token' direttamente in args (OpenWhisk può passare i parametri come top-level)
     if not token and "token" in args:
         token = args["token"]
-    
-    print(f"DEBUG token found: {token}")
     
     if not token:
         return None
@@ -65,16 +62,15 @@ def get_company_info(conn, user_id):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                """SELECT nome, cognome, email, telefono, indirizzo, piva, iva_esente 
-                   FROM users WHERE id = %s""",
+                """SELECT id, nome, cognome, email, indirizzo, piva, iva_esente FROM users WHERE id = %s""",
                 (user_id,)
             )
             row = cur.fetchone()
             if row:
                 return {
-                    "nome": f"{row[0]} {row[1]}" if row[0] and row[1] else (row[0] or row[1] or ""),
-                    "email": row[2],
-                    "telefono": row[3],
+                    "id": row[0],
+                    "nome": f"{row[1]} {row[2]}" if row[1] and row[2] else (row[1] or ""),
+                    "email": row[3],
                     "indirizzo": row[4],
                     "piva": row[5],
                     "iva_esente": row[6]
@@ -87,17 +83,17 @@ def get_contact_info(conn, contatto_id):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                """SELECT nome, cognome, email, telefono, indirizzo 
-                   FROM contacts WHERE id = %s""",
+                """SELECT id, nome, cognome, email, telefono, indirizzo FROM contacts WHERE id = %s""",
                 (contatto_id,)
             )
             row = cur.fetchone()
             if row:
                 return {
-                    "nome": f"{row[0]} {row[1]}" if row[0] and row[1] else (row[0] or row[1] or ""),
-                    "email": row[2],
-                    "telefono": row[3],
-                    "indirizzo": row[4]
+                    "id": row[0],
+                    "nome": f"{row[1]} {row[2]}" if row[1] and row[2] else (row[1] or ""),
+                    "email": row[3],
+                    "telefono": row[4],
+                    "indirizzo": row[5]
                 }
     except:
         pass
@@ -238,10 +234,9 @@ def generate_invoice_html(order_details, company_info, contact_info):
     <div class="info-grid">
         <div class="info-block">
             <div class="section-title">Mittente</div>
-            <p><strong>{company_info['nome']}</strong></p>
-            {company_info.get('indirizzo') and f"<p>{company_info['indirizzo']}</p>"}
-            {company_info.get('email') and f"<p>{company_info['email']}</p>"}
-            {company_info.get('telefono') and f"<p>Tel: {company_info['telefono']}</p>"}
+            <p><strong>{company_info['nome'] if company_info else 'N/A'}</strong></p>
+            {company_info and company_info.get('indirizzo') and f"<p>{company_info['indirizzo']}</p>"}
+            {company_info and company_info.get('email') and f"<p>{company_info['email']}</p>"}
         </div>
         <div class="info-block">
             <div class="section-title">Destinatario</div>
@@ -281,8 +276,8 @@ def generate_invoice_html(order_details, company_info, contact_info):
     </div>
 
     <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 0.9em;">
-        {company_info.get('piva') and f"P.IVA: {company_info['piva']}"}
-        {company_info.get('iva_esente') and company_info['piva'] and ' - '}{company_info.get('iva_esente') and 'IVA Esente'}
+        {company_info and company_info.get('piva') and f"P.IVA: {company_info['piva']}"}
+        {company_info and company_info.get('iva_esente') and company_info.get('piva') and ' - '}{company_info and company_info.get('iva_esente') and 'IVA Esente'}
     </div>
 </body>
 </html>"""

@@ -71,7 +71,7 @@ def main(args, ctx=None):
         if method == "GET":
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT id, user_id, nome, email, telefono, nota, created_at FROM contacts WHERE user_id = %s ORDER BY created_at DESC",
+                    "SELECT id, user_id, nome, cognome, email, telefono, indirizzo, nota, created_at FROM contacts WHERE user_id = %s ORDER BY created_at DESC",
                     (user_id,)
                 )
                 rows = cur.fetchall()
@@ -81,10 +81,12 @@ def main(args, ctx=None):
                         "id": row[0],
                         "user_id": row[1],
                         "nome": row[2],
-                        "email": row[3],
-                        "telefono": row[4],
-                        "nota": row[5],
-                        "created_at": str(row[6]) if row[6] else None
+                        "cognome": row[3],
+                        "email": row[4],
+                        "telefono": row[5],
+                        "indirizzo": row[6],
+                        "nota": row[7],
+                        "created_at": str(row[8]) if row[8] else None
                     })
                 return {"ok": True, "contacts": contacts}
         
@@ -93,14 +95,16 @@ def main(args, ctx=None):
             if not nome:
                 return {"ok": False, "error": "Nome è richiesto"}
             
+            cognome = merged.get("cognome", "").strip() or None
             email = merged.get("email", "").strip() or None
             telefono = merged.get("telefono", "").strip() or None
+            indirizzo = merged.get("indirizzo", "").strip() or None
             nota = merged.get("nota", "").strip() or None
             
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO contacts (user_id, nome, email, telefono, nota) VALUES (%s, %s, %s, %s, %s) RETURNING id, user_id, nome, email, telefono, nota, created_at",
-                    (user_id, nome, email, telefono, nota)
+                    "INSERT INTO contacts (user_id, nome, cognome, email, telefono, indirizzo, nota) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, user_id, nome, cognome, email, telefono, indirizzo, nota, created_at",
+                    (user_id, nome, cognome, email, telefono, indirizzo, nota)
                 )
                 row = cur.fetchone()
             
@@ -112,10 +116,12 @@ def main(args, ctx=None):
                     "id": row[0],
                     "user_id": row[1],
                     "nome": row[2],
-                    "email": row[3],
-                    "telefono": row[4],
-                    "nota": row[5],
-                    "created_at": str(row[6]) if row[6] else None
+                    "cognome": row[3],
+                    "email": row[4],
+                    "telefono": row[5],
+                    "indirizzo": row[6],
+                    "nota": row[7],
+                    "created_at": str(row[8]) if row[8] else None
                 }
             }
         
@@ -130,13 +136,15 @@ def main(args, ctx=None):
                     return {"ok": False, "error": "Contatto non trovato"}
                 
                 nome = merged.get("nome", "").strip() or ""
-                email = merged.get("email", "").strip() or ""
-                telefono = merged.get("telefono", "").strip() or ""
-                nota = merged.get("nota", "").strip() or ""
+                cognome = merged.get("cognome", "").strip() or None
+                email = merged.get("email", "").strip() or None
+                telefono = merged.get("telefono", "").strip() or None
+                indirizzo = merged.get("indirizzo", "").strip() or None
+                nota = merged.get("nota", "").strip() or None
                 
                 cur.execute(
-                    "UPDATE contacts SET nome=%s, email=%s, telefono=%s, nota=%s WHERE id = %s AND user_id = %s RETURNING id, user_id, nome, email, telefono, nota, created_at",
-                    (nome, email, telefono, nota, contact_id, user_id)
+                    "UPDATE contacts SET nome=%s, cognome=%s, email=%s, telefono=%s, indirizzo=%s, nota=%s WHERE id = %s AND user_id = %s RETURNING id, user_id, nome, cognome, email, telefono, indirizzo, nota, created_at",
+                    (nome, cognome, email, telefono, indirizzo, nota, contact_id, user_id)
                 )
                 row = cur.fetchone()
             
@@ -148,10 +156,12 @@ def main(args, ctx=None):
                     "id": row[0],
                     "user_id": row[1],
                     "nome": row[2],
-                    "email": row[3],
-                    "telefono": row[4],
-                    "nota": row[5],
-                    "created_at": str(row[6]) if row[6] else None
+                    "cognome": row[3],
+                    "email": row[4],
+                    "telefono": row[5],
+                    "indirizzo": row[6],
+                    "nota": row[7],
+                    "created_at": str(row[8]) if row[8] else None
                 }
             }
         
