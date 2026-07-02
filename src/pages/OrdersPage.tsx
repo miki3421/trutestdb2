@@ -150,9 +150,24 @@ export default function OrdersPage() {
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(order.id)}>
                       Elimina
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={() => {
+                    <Button variant="secondary" size="sm" onClick={async () => {
                       const token = localStorage.getItem("token");
-                      window.open(`/api/my/v1/fattura/${order.id}?token=${token}`, "_blank");
+                      try {
+                        const response = await fetch(`/api/my/v1/fattura/${order.id}`, {
+                          headers: getAuthHeaders(),
+                        });
+                        const data = await response.json();
+                        if (!data.ok || !data.html) {
+                          throw new Error(data.error || "Impossibile generare la fattura");
+                        }
+                        const newWindow = window.open("", "_blank");
+                        if (newWindow) {
+                          newWindow.document.write(data.html);
+                          newWindow.document.close();
+                        }
+                      } catch (err: any) {
+                        alert(err.message || "Errore nella generazione della fattura");
+                      }
                     }}>
                       Fattura
                     </Button>

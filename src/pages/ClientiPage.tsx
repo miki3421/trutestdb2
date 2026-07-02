@@ -190,22 +190,6 @@ function ClienteForm({ cliente, onClose }: { cliente: Cliente | null; onClose: (
       setCitta("");
       setNota("");
     }
-  });
-
-  useEffect(() => {
-    if (cliente) {
-      setNome(cliente.nome);
-      setEmail(cliente.email);
-      setTelefono(cliente.telefono);
-      setCitta(cliente.citta);
-      setNota(cliente.nota);
-    } else {
-      setNome("");
-      setEmail("");
-      setTelefono("");
-      setCitta("");
-      setNota("");
-    }
   }, [cliente]);
 
   const mutation = useMutation({
