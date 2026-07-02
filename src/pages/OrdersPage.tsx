@@ -145,6 +145,9 @@ export default function OrdersPage() {
                     <Button variant="destructive" size="sm" onClick={() => handleDelete(order.id)}>
                       Elimina
                     </Button>
+                    <Button variant="secondary" size="sm" onClick={() => window.open(`/api/my/v1/fattura/${order.id}`, "_blank")}>
+                      Fattura
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
