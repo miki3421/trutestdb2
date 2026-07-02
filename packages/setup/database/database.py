@@ -76,6 +76,47 @@ def main(args, ctx=None):
                 )
             """)
             
+            # Create pagamenti table for tracking invoice payments
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS pagamenti (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+                    importo DECIMAL(10,2) NOT NULL,
+                    data_pagamento DATE NOT NULL DEFAULT CURRENT_DATE,
+                    metodo VARCHAR(50) NOT NULL,
+                    nota TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create view for invoice payment status
+            cur.execute("""
+                CREATE OR REPLACE VIEW fatture_con_stato_pagamento AS
+                SELECT 
+                    o.id as order_id,
+                    o.user_id,
+                    o.contatto_id,
+                    o.cliente_id,
+                    c.nome as cliente_nome,
+                    o.data_ordine as data_fattura,
+                    o.stato as stato_ordine,
+                    o.totale as importo_fattura,
+                    COALESCE(SUM(p.importo), 0) as totale_pagato,
+                    CASE 
+                        WHEN COALESCE(SUM(p.importo), 0) = 0 THEN 'da_pagare'
+                        WHEN COALESCE(SUM(p.importo), 0) < o.totale THEN 'parzialmente_pagata'
+                        ELSE 'pagata'
+                    END as stato_pagamento,
+                    o.totale - COALESCE(SUM(p.importo), 0) as residuo,
+                    MAX(p.data_pagamento) as ultimo_pagamento
+                FROM orders o
+                LEFT JOIN clienti c ON o.cliente_id = c.id
+                LEFT JOIN pagamenti p ON p.order_id = o.id AND p.user_id = o.user_id
+                GROUP BY o.id, o.user_id, o.contatto_id, o.cliente_id, 
+                         c.nome, o.data_ordine, o.stato, o.totale
+            """)
+            
             # Add missing columns to users table if they don't exist
             cur.execute("""
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS cognome VARCHAR(100)

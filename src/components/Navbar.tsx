@@ -32,6 +32,9 @@ export default function Navbar() {
               <Link to="/orders" className="text-sm hover:text-primary transition-colors">
                 Ordini
               </Link>
+              <Link to="/scadenze" className="text-sm hover:text-primary transition-colors">
+                Scadenze
+              </Link>
               <Link to="/profile" className="text-sm hover:text-primary transition-colors">
                 Profilo
               </Link>

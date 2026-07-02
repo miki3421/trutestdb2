@@ -5,56 +5,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "../components/Navbar";
 
-interface Contact {
+interface LastPayment {
   id: number;
-  nome: string;
+  order_id: number;
+  importo: number;
+  data_pagamento: string | null;
+  metodo: string;
+  nota: string | null;
+  cliente_nome: string;
 }
 
-interface Order {
-  id: number;
-  stato: string;
-  totale: number | null;
-  data_ordine: string | null;
+interface DashboardData {
+  totale_fatture: number;
+  totale_emesse: number;
+  totale_incassato: number;
+  totale_da_incassare: number;
+  scadute_count: number;
+  ultimi_pagamenti: LastPayment[];
 }
 
 export default function DashboardPage() {
   const token = localStorage.getItem("token");
 
-  const { data: contacts, isLoading: loadingContacts } = useQuery({
-    queryKey: ["contacts"],
+  const { data: dashboard, isLoading } = useQuery({
+    queryKey: ["dashboard"],
     queryFn: async () => {
-      const response = await fetch("/api/my/v1/contacts", {
+      const response = await fetch("/api/my/v1/dashboard", {
         headers: getAuthHeaders(),
       });
       const data = await response.json();
       if (!data.ok) throw new Error(data.error);
-      return data.contacts;
+      return data.dashboard as DashboardData;
     },
     enabled: !!token,
   });
-
-  const { data: orders, isLoading: loadingOrders } = useQuery({
-    queryKey: ["orders"],
-    queryFn: async () => {
-      const response = await fetch("/api/my/v1/orders", {
-        headers: getAuthHeaders(),
-      });
-      const data = await response.json();
-      if (!data.ok) throw new Error(data.error);
-      return data.orders;
-    },
-    enabled: !!token,
-  });
-
-  const totalContacts = contacts?.length || 0;
-  const totalOrders = orders?.length || 0;
-  const totalRevenue = orders?.reduce((sum, order) => sum + (order.totale || 0), 0) || 0;
-  
-  const pendingOrders = orders?.filter(o => o.stato === "pending").length || 0;
-  const shippedOrders = orders?.filter(o => o.stato === "shipped").length || 0;
-  const deliveredOrders = orders?.filter(o => o.stato === "delivered").length || 0;
-
-  const recentOrders = orders?.slice(0, 5) || [];
 
   if (!token) {
     return (
@@ -79,11 +63,14 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <div className="flex gap-2">
-            <Link to="/contacts">
-              <Button variant="outline">Gestisci Contatti</Button>
+            <Link to="/clienti">
+              <Button variant="outline">Clienti</Button>
             </Link>
             <Link to="/orders">
-              <Button>Gestisci Ordini</Button>
+              <Button>Ordini</Button>
+            </Link>
+            <Link to="/scadenze">
+              <Button variant="secondary">Scadenze</Button>
             </Link>
           </div>
         </div>
@@ -92,134 +79,115 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Totale Contatti</CardDescription>
-              <CardTitle className="text-4xl">{loadingContacts ? "-" : totalContacts}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Link to="/contacts" className="text-sm text-primary hover:underline">
-                Vedi tutti →
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Totale Ordini</CardDescription>
-              <CardTitle className="text-4xl">{loadingOrders ? "-" : totalOrders}</CardTitle>
+              <CardDescription>Fatture Emesse</CardDescription>
+              <CardTitle className="text-4xl">{isLoading ? "-" : dashboard?.totale_fatture || 0}</CardTitle>
             </CardHeader>
             <CardContent>
               <Link to="/orders" className="text-sm text-primary hover:underline">
-                Vedi tutti →
+                Vedi tutte →
               </Link>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Fatturato Totale</CardDescription>
+              <CardDescription>Totale Emissione</CardDescription>
               <CardTitle className="text-4xl">
-                {loadingOrders ? "-" : `€ ${totalRevenue.toFixed(2)}`}
+                {isLoading ? "-" : `€ ${(dashboard?.totale_emesse || 0).toFixed(2)}`}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Da tutti gli ordini</p>
+              <p className="text-sm text-muted-foreground">Fatturato totale</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Ordini in Attesa</CardDescription>
-              <CardTitle className="text-4xl">{loadingOrders ? "-" : pendingOrders}</CardTitle>
+              <CardDescription>Totale Incassato</CardDescription>
+              <CardTitle className="text-4xl">
+                {isLoading ? "-" : `€ ${(dashboard?.totale_incassato || 0).toFixed(2)}`}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Da processare</p>
+              <p className="text-sm text-green-600 font-medium">Da pagare: € {(dashboard?.totale_da_incassare || 0).toFixed(2)}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Fatture Scadute</CardDescription>
+              <CardTitle className={`text-4xl ${dashboard?.scadute_count ? "text-red-600" : ""}`}>
+                {isLoading ? "-" : dashboard?.scadute_count || 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link to="/scadenze" className="text-sm text-primary hover:underline">
+                Vedi scadenze →
+              </Link>
             </CardContent>
           </Card>
         </div>
 
-        {/* Order Status Breakdown */}
-        {orders && orders.length > 0 && (
-          <Card>
+        {/* Scadenze Alert */}
+        {dashboard?.scadute_count && dashboard.scadute_count > 0 && (
+          <Card className="border-red-200 bg-red-50">
             <CardHeader>
-              <CardTitle>Riepilogo Ordini per Stato</CardTitle>
+              <CardTitle className="text-red-800">⚠️ Hai {dashboard.scadute_count} fattura{dashboard.scadute_count > 1 ? "e" : ""} scaduta{dashboard.scadute_count > 1 ? "e" : ""}</CardTitle>
+              <CardDescription className="text-red-700">
+                Controlla la pagina Scadenze per gestire i pagamenti in ritardo
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-700">{pendingOrders}</p>
-                  <p className="text-sm text-yellow-600">In Attesa</p>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-700">{shippedOrders}</p>
-                  <p className="text-sm text-blue-600">Spediti</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-700">{deliveredOrders}</p>
-                  <p className="text-sm text-green-600">Consegnati</p>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold text-gray-700">
-                    {orders.filter(o => o.stato === "cancelled").length}
-                  </p>
-                  <p className="text-sm text-gray-600">Annullati</p>
-                </div>
-              </div>
+              <Link to="/scadenze">
+                <Button variant="destructive">Vai alle Scadenze</Button>
+              </Link>
             </CardContent>
           </Card>
         )}
 
-        {/* Recent Orders */}
+        {/* Ultimi Pagamenti */}
         <Card>
           <CardHeader>
-            <CardTitle>Ultimi Ordini</CardTitle>
-            <CardDescription>I 5 ordini più recenti</CardDescription>
+            <CardTitle>Ultimi Pagamenti Ricevuti</CardTitle>
+            <CardDescription>I 5 pagamenti più recenti</CardDescription>
           </CardHeader>
           <CardContent>
-            {loadingOrders ? (
+            {isLoading ? (
               <p>Caricamento...</p>
-            ) : recentOrders.length === 0 ? (
+            ) : !dashboard?.ultimi_pagamenti || dashboard.ultimi_pagamenti.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">Nessun ordine trovato</p>
+                <p className="text-muted-foreground mb-4">Nessun pagamento registrato</p>
                 <Link to="/orders">
-                  <Button>Crea il tuo primo ordine</Button>
+                  <Button>Gestisci Ordini</Button>
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
-                {recentOrders.map((order: Order) => (
+                {dashboard.ultimi_pagamenti.map((pagamento: LastPayment) => (
                   <div
-                    key={order.id}
+                    key={pagamento.id}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center font-semibold">
-                        #{order.id}
+                      <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-semibold">
+                        €
                       </div>
                       <div>
-                        <p className="font-medium">Ordine #{order.id}</p>
+                        <p className="font-medium">{pagamento.cliente_nome || `Fattura #${pagamento.order_id}`}</p>
                         <p className="text-sm text-muted-foreground">
-                          {order.data_ordine 
-                            ? new Date(order.data_ordine).toLocaleDateString("it-IT")
+                          {pagamento.data_pagamento 
+                            ? new Date(pagamento.data_pagamento).toLocaleDateString("it-IT")
                             : "Data non specificata"}
+                          {pagamento.metodo && ` • ${pagamento.metodo}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          order.stato === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : order.stato === "shipped"
-                            ? "bg-blue-100 text-blue-800"
-                            : order.stato === "delivered"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {order.stato}
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Pagato
                       </span>
-                      <p className="font-semibold">
-                        {order.totale !== null ? `€ ${order.totale.toFixed(2)}` : "-"}
+                      <p className="font-semibold text-green-700">
+                        € {pagamento.importo.toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -236,14 +204,19 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 flex-wrap">
-              <Link to="/contacts">
+              <Link to="/clienti">
                 <Button variant="outline">
-                  + Nuovo Contatto
+                  + Nuovo Cliente
                 </Button>
               </Link>
               <Link to="/orders">
                 <Button>
-                  + Nuovo Ordine
+                  + Nuova Fattura
+                </Button>
+              </Link>
+              <Link to="/scadenze">
+                <Button variant="secondary">
+                  Vedi Scadenze
                 </Button>
               </Link>
             </div>

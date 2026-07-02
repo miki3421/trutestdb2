@@ -69,15 +69,42 @@ def main(args, ctx=None):
     
     try:
         if method == "GET":
+            # Get filters from query params
+            cliente_id = merged.get("cliente_id")
+            stato_pagamento = merged.get("stato_pagamento")
+            from_date = merged.get("from_date")
+            to_date = merged.get("to_date")
+            
             with conn.cursor() as cur:
-                cur.execute(
-                    """SELECT o.id, o.user_id, o.contatto_id, o.cliente_id, o.data_ordine, o.stato, o.totale, o.created_at, c.nome as cliente_nome
-                       FROM orders o 
-                       LEFT JOIN clienti c ON o.cliente_id = c.id
-                       WHERE o.user_id = %s 
-                       ORDER BY o.created_at DESC""",
-                    (user_id,)
-                )
+                # Use the view that calculates payment status
+                query = """
+                    SELECT order_id, user_id, contatto_id, cliente_id, cliente_nome, 
+                           data_fattura, stato_ordine, importo_fattura, totale_pagato,
+                           stato_pagamento, residuo, ultimo_pagamento
+                    FROM fatture_con_stato_pagamento
+                    WHERE user_id = %s
+                """
+                params = [user_id]
+                
+                if cliente_id:
+                    query += " AND cliente_id = %s"
+                    params.append(cliente_id)
+                
+                if stato_pagamento:
+                    query += " AND stato_pagamento = %s"
+                    params.append(stato_pagamento)
+                
+                if from_date:
+                    query += " AND data_fattura >= %s"
+                    params.append(from_date)
+                
+                if to_date:
+                    query += " AND data_fattura <= %s"
+                    params.append(to_date)
+                
+                query += " ORDER BY data_fattura DESC"
+                
+                cur.execute(query, tuple(params))
                 rows = cur.fetchall()
                 orders = []
                 for row in rows:
@@ -86,11 +113,14 @@ def main(args, ctx=None):
                         "user_id": row[1],
                         "contatto_id": row[2],
                         "cliente_id": row[3],
-                        "data_ordine": str(row[4]) if row[4] else None,
-                        "stato": row[5],
-                        "totale": float(row[6]) if row[6] else None,
-                        "created_at": str(row[7]) if row[7] else None,
-                        "cliente_nome": row[8]
+                        "cliente_nome": row[4] or "",
+                        "data_ordine": str(row[5]) if row[5] else None,
+                        "stato": row[6],
+                        "totale": float(row[7]) if row[7] else None,
+                        "totale_pagato": float(row[8]) if row[8] else 0.0,
+                        "stato_pagamento": row[9],
+                        "residuo": float(row[10]) if row[10] else 0.0,
+                        "ultimo_pagamento": str(row[11]) if row[11] else None
                     })
                 return {"ok": True, "orders": orders}
         
